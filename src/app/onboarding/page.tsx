@@ -80,7 +80,7 @@ export default function OnboardingPage() {
             </button>
             <div className="text-4xl mb-3">🏠</div>
             <CardTitle>Create Your Family</CardTitle>
-            <CardDescription>You'll be the owner and can invite members later.</CardDescription>
+            <CardDescription>You&apos;ll be the owner and can invite members later.</CardDescription>
           </CardHeader>
           <form action={handleCreateFamily}>
             <CardContent className="space-y-5">

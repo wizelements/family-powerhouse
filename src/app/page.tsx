@@ -24,7 +24,7 @@ export default function HomePage() {
           </h1>
           <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
             Pool money for trips, track budgets, plan adventures, and build wealth together. 
-            One platform for your family's financial and lifestyle goals.
+            One platform for your family&apos;s financial and lifestyle goals.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup">

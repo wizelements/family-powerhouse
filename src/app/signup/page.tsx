@@ -31,7 +31,7 @@ export default function SignUpPage() {
             <div className="text-4xl mb-3">🎉</div>
           </div>
           <CardTitle>Create Your Account</CardTitle>
-          <CardDescription>Start your family's journey to financial success</CardDescription>
+          <CardDescription>Start your family&apos;s journey to financial success</CardDescription>
         </CardHeader>
         <form action={handleSubmit}>
           <CardContent className="space-y-5">
