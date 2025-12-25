@@ -72,3 +72,27 @@ export function canApproveWithdrawals(role: Role | null | undefined): boolean {
 export function getApproverRoles(): Role[] {
   return [...PERMISSIONS.APPROVE_WITHDRAWAL] as Role[];
 }
+
+export function isGuestRole(role: Role | null | undefined): boolean {
+  return role === 'GUEST';
+}
+
+const GUEST_PERMISSIONS: Permission[] = ['VIEW_TRIP', 'VIEW_CHAT'];
+
+export function getGuestPermissions(): Permission[] {
+  return [...GUEST_PERMISSIONS];
+}
+
+const READ_ONLY_PERMISSIONS: Permission[] = [
+  'VIEW_POOL',
+  'VIEW_BUDGET',
+  'VIEW_TRIP',
+  'VIEW_VENTURE',
+  'VIEW_CHAT',
+  'VIEW_DM',
+  'VIEW_AUDIT_LOGS',
+];
+
+export function isReadOnlyPermission(permission: Permission): boolean {
+  return READ_ONLY_PERMISSIONS.includes(permission);
+}
