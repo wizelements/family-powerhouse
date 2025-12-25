@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, AuditEvent, Prisma } from '@/lib/db';
+import { prisma, AuditEvent } from '@/lib/db';
 import { generateLedgerIdempotencyKey } from '@/lib/utils/idempotency';
 import { triggerFamilyEvent } from '@/lib/pusher/server';
 import type Stripe from 'stripe';
@@ -81,7 +81,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return;
   }
 
-  const amount = new Prisma.Decimal(session.amount_total! / 100);
+  const amount = session.amount_total! / 100;
 
   await prisma.$transaction(async (tx) => {
     // Update contribution status
@@ -94,7 +94,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     });
 
     // Calculate new pool balance
-    const newBalance = contribution.pool.currentAmount.plus(amount);
+    const newBalance = contribution.pool.currentAmount + amount;
 
     // Create ledger entry
     await tx.ledgerEntry.create({
@@ -128,7 +128,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     });
 
     // Check if pool target reached
-    if (newBalance.greaterThanOrEqualTo(contribution.pool.targetAmount)) {
+    if (newBalance >= contribution.pool.targetAmount) {
       await tx.notification.create({
         data: {
           userId: contribution.pool.createdById,

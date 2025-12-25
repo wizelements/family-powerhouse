@@ -99,14 +99,14 @@ jobs:
           pnpm prisma generate
           pnpm prisma db push
         env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/family_powerhouse_test
+          DATABASE_URL: "mongodb+srv://test:test@localhost/family_powerhouse_test?authSource=admin"
           NEXTAUTH_SECRET: "test-secret-for-ci"
           NEXTAUTH_URL: "http://localhost:3000"
       
       - name: Run integration tests
         run: pnpm test:integration
         env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/family_powerhouse_test
+          DATABASE_URL: "mongodb+srv://test:test@localhost/family_powerhouse_test?authSource=admin"
 
   e2e-tests:
     name: E2E Tests
@@ -149,21 +149,21 @@ jobs:
           pnpm prisma db push
           pnpm db:seed
         env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/family_powerhouse_e2e
+          DATABASE_URL: "mongodb+srv://test:test@localhost/family_powerhouse_e2e?authSource=admin"
           NEXTAUTH_SECRET: "test-secret-for-ci"
           NEXTAUTH_URL: "http://localhost:3000"
       
       - name: Build app
         run: pnpm build
         env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/family_powerhouse_e2e
+          DATABASE_URL: "mongodb+srv://test:test@localhost/family_powerhouse_e2e?authSource=admin"
           NEXTAUTH_SECRET: test-secret-for-ci
           NEXTAUTH_URL: http://localhost:3000
       
       - name: Run E2E tests
         run: pnpm test:e2e
         env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/family_powerhouse_e2e
+          DATABASE_URL: "mongodb+srv://test:test@localhost/family_powerhouse_e2e?authSource=admin"
           NEXTAUTH_SECRET: test-secret-for-ci
           NEXTAUTH_URL: http://localhost:3000
       
@@ -227,7 +227,7 @@ jobs:
         run: pnpm build
         env:
           SKIP_ENV_VALIDATION: true
-          DATABASE_URL: "postgresql://dummy:dummy@localhost/dummy"
+          DATABASE_URL: "mongodb+srv://dummy:dummy@localhost/dummy"
           NEXTAUTH_SECRET: "ci-build-secret-key-change-in-production"
           NEXTAUTH_URL: "http://localhost:3000"
 

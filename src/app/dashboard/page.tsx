@@ -65,7 +65,7 @@ export default async function DashboardPage() {
               <p className="text-gray-500 text-sm">No active pools yet.</p>
             ) : (
               pools.map((pool) => {
-                const progress = pool.targetAmount.isZero() 
+                const progress = pool.targetAmount === 0 
                   ? 0 
                   : Number(pool.currentAmount) / Number(pool.targetAmount) * 100;
                 return (

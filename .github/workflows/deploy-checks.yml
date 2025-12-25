@@ -84,7 +84,7 @@ jobs:
           echo "✅ Build successful"
         env:
           SKIP_ENV_VALIDATION: true
-          DATABASE_URL: "postgresql://dummy:dummy@localhost/dummy"
+          DATABASE_URL: "mongodb+srv://dummy:dummy@localhost/dummy"
           NEXTAUTH_SECRET: "ci-build-secret-key-change-in-production"
           NEXTAUTH_URL: "http://localhost:3000"
 

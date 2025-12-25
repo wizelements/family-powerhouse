@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
@@ -12,7 +12,7 @@ datasource db {
 // ============================================================================
 
 model User {
-  id            String    @id @default(cuid())
+  id            String    @id @default(cuid()) @map("_id")
   email         String    @unique
   emailVerified DateTime?
   name          String?
@@ -44,41 +44,38 @@ model User {
   notifications Notification[]
   votes         Vote[]
 
-  @@index([email])
 }
 
 model Account {
-  id                String  @id @default(cuid())
+  id                String  @id @default(cuid()) @map("_id")
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-  @@index([userId])
 }
 
 model Session {
-  id           String   @id @default(cuid())
+  id           String   @id @default(cuid()) @map("_id")
   sessionToken String   @unique
   userId       String
   expires      DateTime
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
 }
 
 model VerificationToken {
+  id         String   @id @default(cuid()) @map("_id")
   identifier String
   token      String   @unique
   expires    DateTime
@@ -91,7 +88,7 @@ model VerificationToken {
 // ============================================================================
 
 model Family {
-  id          String   @id @default(cuid())
+  id          String   @id @default(cuid()) @map("_id")
   name        String
   slug        String   @unique
   description String?
@@ -111,12 +108,10 @@ model Family {
   charterVersions FamilyCharterVersion[]
   auditLogs      AuditLog[]
   notifications  Notification[]
-
-  @@index([slug])
 }
 
 model Membership {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   userId    String
   familyId  String
   role      Role     @default(MEMBER)
@@ -128,8 +123,6 @@ model Membership {
   family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
 
   @@unique([userId, familyId])
-  @@index([familyId])
-  @@index([userId])
 }
 
 enum Role {
@@ -148,7 +141,7 @@ enum MembershipStatus {
 }
 
 model Invite {
-  id        String       @id @default(cuid())
+  id        String       @id @default(cuid()) @map("_id")
   familyId  String
   email     String?
   token     String       @unique
@@ -159,9 +152,6 @@ model Invite {
   usedAt    DateTime?
 
   family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
-
-  @@index([token])
-  @@index([familyId])
 }
 
 enum InviteStatus {
@@ -176,7 +166,7 @@ enum InviteStatus {
 // ============================================================================
 
 model Channel {
-  id          String      @id @default(cuid())
+  id          String      @id @default(cuid()) @map("_id")
   familyId    String
   name        String
   type        ChannelType @default(PUBLIC)
@@ -189,7 +179,6 @@ model Channel {
   messages Message[]
 
   @@unique([familyId, name])
-  @@index([familyId])
 }
 
 enum ChannelType {
@@ -200,10 +189,10 @@ enum ChannelType {
 }
 
 model Message {
-  id           String        @id @default(cuid())
+  id           String        @id @default(cuid()) @map("_id")
   channelId    String
   senderId     String
-  content      String        @db.Text
+  content      String
   type         MessageType   @default(TEXT)
   metadata     Json?
   isEdited     Boolean       @default(false)
@@ -214,16 +203,12 @@ model Message {
 
   channel     Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
   sender      User             @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  parent      Message?         @relation("MessageReplies", fields: [parentId], references: [id])
+  parent      Message?         @relation("MessageReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   replies     Message[]        @relation("MessageReplies")
   attachments FileAttachment[]
   reactions   Reaction[]
   mentions    Mention[]
   reports     MessageReport[]
-
-  @@index([channelId])
-  @@index([senderId])
-  @@index([createdAt])
 }
 
 enum MessageType {
@@ -234,7 +219,7 @@ enum MessageType {
 }
 
 model FileAttachment {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   messageId String?
   tripId    String?
   ventureId String?
@@ -248,14 +233,10 @@ model FileAttachment {
   message Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
   trip    Trip?    @relation(fields: [tripId], references: [id], onDelete: Cascade)
   venture Venture? @relation(fields: [ventureId], references: [id], onDelete: Cascade)
-
-  @@index([messageId])
-  @@index([tripId])
-  @@index([ventureId])
 }
 
 model Reaction {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   messageId String
   userId    String
   emoji     String
@@ -264,11 +245,10 @@ model Reaction {
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, userId, emoji])
-  @@index([messageId])
 }
 
 model Mention {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   messageId String
   userId    String
   createdAt DateTime @default(now())
@@ -276,11 +256,10 @@ model Mention {
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, userId])
-  @@index([messageId])
 }
 
 model MessageReport {
-  id        String       @id @default(cuid())
+  id        String       @id @default(cuid()) @map("_id")
   messageId String
   reporterId String
   reason    String
@@ -289,9 +268,6 @@ model MessageReport {
   resolvedAt DateTime?
 
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  @@index([messageId])
-  @@index([status])
 }
 
 enum ReportStatus {
@@ -306,14 +282,14 @@ enum ReportStatus {
 // ============================================================================
 
 model Pool {
-  id               String     @id @default(cuid())
+  id               String     @id @default(cuid()) @map("_id")
   familyId         String
   createdById      String
   name             String
   type             PoolType
   description      String?
-  targetAmount     Decimal    @db.Decimal(12, 2)
-  currentAmount    Decimal    @default(0) @db.Decimal(12, 2)
+  targetAmount     Float
+  currentAmount    Float      @default(0)
   deadline         DateTime?
   status           PoolStatus @default(ACTIVE)
   approvalConfig   Json       @default("{\"requiredApprovers\": 2, \"approverRoles\": [\"OWNER\", \"TREASURER\"]}")
@@ -327,9 +303,6 @@ model Pool {
   withdrawalRequests WithdrawalRequest[]
   ledgerEntries      LedgerEntry[]
   trip               Trip?
-
-  @@index([familyId])
-  @@index([status])
 }
 
 enum PoolType {
@@ -347,10 +320,10 @@ enum PoolStatus {
 }
 
 model Contribution {
-  id              String              @id @default(cuid())
+  id              String              @id @default(cuid()) @map("_id")
   poolId          String
   userId          String
-  amount          Decimal             @db.Decimal(12, 2)
+  amount          Float
   type            ContributionType    @default(ONE_TIME)
   frequency       ContributionFrequency?
   status          ContributionStatus  @default(PENDING)
@@ -365,11 +338,6 @@ model Contribution {
   pool        Pool          @relation(fields: [poolId], references: [id], onDelete: Cascade)
   user        User          @relation(fields: [userId], references: [id])
   ledgerEntry LedgerEntry?
-
-  @@index([poolId])
-  @@index([userId])
-  @@index([status])
-  @@index([idempotencyKey])
 }
 
 enum ContributionType {
@@ -393,10 +361,10 @@ enum ContributionStatus {
 }
 
 model WithdrawalRequest {
-  id             String            @id @default(cuid())
+  id             String            @id @default(cuid()) @map("_id")
   poolId         String
   requesterId    String
-  amount         Decimal           @db.Decimal(12, 2)
+  amount         Float
   reason         String
   status         WithdrawalStatus  @default(PENDING)
   idempotencyKey String            @unique
@@ -409,10 +377,6 @@ model WithdrawalRequest {
   requester   User          @relation(fields: [requesterId], references: [id])
   approvals   Approval[]
   ledgerEntry LedgerEntry?
-
-  @@index([poolId])
-  @@index([requesterId])
-  @@index([status])
 }
 
 enum WithdrawalStatus {
@@ -425,7 +389,7 @@ enum WithdrawalStatus {
 }
 
 model Approval {
-  id                  String         @id @default(cuid())
+  id                  String         @id @default(cuid()) @map("_id")
   withdrawalRequestId String
   approverId          String
   decision            ApprovalDecision?
@@ -437,8 +401,6 @@ model Approval {
   approver          User              @relation(fields: [approverId], references: [id])
 
   @@unique([withdrawalRequestId, approverId])
-  @@index([withdrawalRequestId])
-  @@index([approverId])
 }
 
 enum ApprovalDecision {
@@ -447,13 +409,13 @@ enum ApprovalDecision {
 }
 
 model LedgerEntry {
-  id                  String      @id @default(cuid())
+  id                  String      @id @default(cuid()) @map("_id")
   poolId              String
   contributionId      String?     @unique
   withdrawalRequestId String?     @unique
   type                LedgerType
-  amount              Decimal     @db.Decimal(12, 2)
-  balanceAfter        Decimal     @db.Decimal(12, 2)
+  amount              Float
+  balanceAfter        Float
   description         String
   idempotencyKey      String      @unique
   metadata            Json?
@@ -462,10 +424,6 @@ model LedgerEntry {
   pool              Pool               @relation(fields: [poolId], references: [id], onDelete: Cascade)
   contribution      Contribution?      @relation(fields: [contributionId], references: [id])
   withdrawalRequest WithdrawalRequest? @relation(fields: [withdrawalRequestId], references: [id])
-
-  @@index([poolId])
-  @@index([createdAt])
-  @@index([idempotencyKey])
 }
 
 enum LedgerType {
@@ -481,7 +439,7 @@ enum LedgerType {
 // ============================================================================
 
 model Budget {
-  id        String     @id @default(cuid())
+  id        String     @id @default(cuid()) @map("_id")
   familyId  String
   name      String
   type      BudgetType
@@ -497,9 +455,6 @@ model Budget {
   categories   BudgetCategory[]
   transactions Transaction[]
   rules        BudgetRule[]
-
-  @@index([familyId])
-  @@index([type])
 }
 
 enum BudgetType {
@@ -509,10 +464,10 @@ enum BudgetType {
 }
 
 model BudgetCategory {
-  id            String   @id @default(cuid())
+  id            String   @id @default(cuid()) @map("_id")
   budgetId      String
   name          String
-  monthlyLimit  Decimal  @db.Decimal(12, 2)
+  monthlyLimit  Float
   color         String?
   icon          String?
   parentId      String?
@@ -520,20 +475,19 @@ model BudgetCategory {
   updatedAt     DateTime @updatedAt
 
   budget       Budget           @relation(fields: [budgetId], references: [id], onDelete: Cascade)
-  parent       BudgetCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  parent       BudgetCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   children     BudgetCategory[] @relation("CategoryHierarchy")
   transactions Transaction[]
 
   @@unique([budgetId, name])
-  @@index([budgetId])
 }
 
 model Transaction {
-  id          String            @id @default(cuid())
+  id          String            @id @default(cuid()) @map("_id")
   budgetId    String
   categoryId  String
   userId      String
-  amount      Decimal           @db.Decimal(12, 2)
+  amount      Float
   type        TransactionType
   description String
   date        DateTime
@@ -546,10 +500,6 @@ model Transaction {
   budget   Budget         @relation(fields: [budgetId], references: [id], onDelete: Cascade)
   category BudgetCategory @relation(fields: [categoryId], references: [id])
   user     User           @relation(fields: [userId], references: [id])
-
-  @@index([budgetId])
-  @@index([categoryId])
-  @@index([date])
 }
 
 enum TransactionType {
@@ -564,19 +514,17 @@ enum TransactionSource {
 }
 
 model BudgetRule {
-  id             String         @id @default(cuid())
+  id             String         @id @default(cuid()) @map("_id")
   budgetId       String
   name           String
   condition      Json           // e.g., { "field": "categoryId", "operator": "equals", "value": "..." }
   action         BudgetAction
-  threshold      Decimal?       @db.Decimal(5, 2)
+  threshold      Float?
   isActive       Boolean        @default(true)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
   budget Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
-
-  @@index([budgetId])
 }
 
 enum BudgetAction {
@@ -590,7 +538,7 @@ enum BudgetAction {
 // ============================================================================
 
 model Trip {
-  id          String     @id @default(cuid())
+  id          String     @id @default(cuid()) @map("_id")
   familyId    String
   createdById String
   poolId      String?    @unique
@@ -614,9 +562,6 @@ model Trip {
   attachments FileAttachment[]
   votes       Vote[]
   budgetItems TripBudgetItem[]
-
-  @@index([familyId])
-  @@index([status])
 }
 
 enum TripStatus {
@@ -628,7 +573,7 @@ enum TripStatus {
 }
 
 model TripTraveler {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   tripId    String
   userId    String
   status    TravelerStatus @default(CONFIRMED)
@@ -637,7 +582,6 @@ model TripTraveler {
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
   @@unique([tripId, userId])
-  @@index([tripId])
 }
 
 enum TravelerStatus {
@@ -648,7 +592,7 @@ enum TravelerStatus {
 }
 
 model TripDay {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   tripId    String
   date      DateTime
   notes     String?
@@ -659,11 +603,10 @@ model TripDay {
   items ItineraryItem[]
 
   @@unique([tripId, date])
-  @@index([tripId])
 }
 
 model ItineraryItem {
-  id          String           @id @default(cuid())
+  id          String           @id @default(cuid()) @map("_id")
   tripDayId   String
   title       String
   type        ItineraryType
@@ -671,7 +614,7 @@ model ItineraryItem {
   endTime     DateTime?
   location    String?
   description String?
-  cost        Decimal?         @db.Decimal(12, 2)
+  cost        Float?
   isBooked    Boolean          @default(false)
   bookingRef  String?
   metadata    Json?
@@ -680,8 +623,6 @@ model ItineraryItem {
   updatedAt   DateTime         @updatedAt
 
   tripDay TripDay @relation(fields: [tripDayId], references: [id], onDelete: Cascade)
-
-  @@index([tripDayId])
 }
 
 enum ItineraryType {
@@ -694,18 +635,17 @@ enum ItineraryType {
 }
 
 model TripBudgetItem {
-  id        String             @id @default(cuid())
+  id        String             @id @default(cuid()) @map("_id")
   tripId    String
   category  TripBudgetCategory
-  planned   Decimal            @db.Decimal(12, 2)
-  actual    Decimal            @default(0) @db.Decimal(12, 2)
+  planned   Float
+  actual    Float              @default(0)
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
 
   trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
   @@unique([tripId, category])
-  @@index([tripId])
 }
 
 enum TripBudgetCategory {
@@ -718,7 +658,7 @@ enum TripBudgetCategory {
 }
 
 model Vote {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   tripId    String
   userId    String
   type      VoteType
@@ -729,7 +669,6 @@ model Vote {
   user User @relation(fields: [userId], references: [id])
 
   @@unique([tripId, userId, type])
-  @@index([tripId])
 }
 
 enum VoteType {
@@ -743,13 +682,13 @@ enum VoteType {
 // ============================================================================
 
 model Venture {
-  id          String       @id @default(cuid())
+  id          String       @id @default(cuid()) @map("_id")
   familyId    String
   createdById String
   name        String
   purpose     String
   stage       VentureStage @default(IDEA)
-  description String?      @db.Text
+  description String?
   metadata    Json?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -761,9 +700,6 @@ model Venture {
   financials  VentureFinancial[]
   attachments FileAttachment[]
   leads       OpportunityLead[]
-
-  @@index([familyId])
-  @@index([stage])
 }
 
 enum VentureStage {
@@ -777,7 +713,7 @@ enum VentureStage {
 }
 
 model VentureOwner {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   ventureId String
   userId    String
   role      String?
@@ -786,11 +722,10 @@ model VentureOwner {
   venture Venture @relation(fields: [ventureId], references: [id], onDelete: Cascade)
 
   @@unique([ventureId, userId])
-  @@index([ventureId])
 }
 
 model VentureMilestone {
-  id          String          @id @default(cuid())
+  id          String          @id @default(cuid()) @map("_id")
   ventureId   String
   title       String
   description String?
@@ -800,8 +735,6 @@ model VentureMilestone {
   updatedAt   DateTime        @updatedAt
 
   venture Venture @relation(fields: [ventureId], references: [id], onDelete: Cascade)
-
-  @@index([ventureId])
 }
 
 enum MilestoneStatus {
@@ -812,19 +745,16 @@ enum MilestoneStatus {
 }
 
 model VentureFinancial {
-  id          String        @id @default(cuid())
+  id          String        @id @default(cuid()) @map("_id")
   ventureId   String
   type        FinancialType
-  amount      Decimal       @db.Decimal(12, 2)
+  amount      Float
   description String
   date        DateTime
   metadata    Json?
   createdAt   DateTime      @default(now())
 
   venture Venture @relation(fields: [ventureId], references: [id], onDelete: Cascade)
-
-  @@index([ventureId])
-  @@index([date])
 }
 
 enum FinancialType {
@@ -834,22 +764,19 @@ enum FinancialType {
 }
 
 model OpportunityLead {
-  id          String      @id @default(cuid())
+  id          String      @id @default(cuid()) @map("_id")
   ventureId   String?
   familyId    String
   name        String
   type        LeadType
   stage       LeadStage   @default(PROSPECT)
   contactInfo Json?
-  notes       String?     @db.Text
+  notes       String?
   nextFollowUp DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
   venture Venture? @relation(fields: [ventureId], references: [id], onDelete: SetNull)
-
-  @@index([ventureId])
-  @@index([stage])
 }
 
 enum LeadType {
@@ -875,7 +802,7 @@ enum LeadStage {
 // ============================================================================
 
 model Task {
-  id          String     @id @default(cuid())
+  id          String     @id @default(cuid()) @map("_id")
   tripId      String?
   ventureId   String?
   familyId    String
@@ -893,10 +820,6 @@ model Task {
   trip      Trip?   @relation(fields: [tripId], references: [id], onDelete: Cascade)
   createdBy User    @relation("TaskCreator", fields: [createdById], references: [id])
   assignee  User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
-
-  @@index([tripId])
-  @@index([assigneeId])
-  @@index([status])
 }
 
 enum TaskStatus {
@@ -918,7 +841,7 @@ enum TaskPriority {
 // ============================================================================
 
 model Habit {
-  id          String         @id @default(cuid())
+  id          String         @id @default(cuid()) @map("_id")
   userId      String
   familyId    String
   name        String
@@ -931,9 +854,6 @@ model Habit {
 
   user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   logs HabitLog[]
-
-  @@index([userId])
-  @@index([familyId])
 }
 
 enum HabitFrequency {
@@ -942,7 +862,7 @@ enum HabitFrequency {
 }
 
 model HabitLog {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   habitId   String
   userId    String
   date      DateTime
@@ -954,12 +874,10 @@ model HabitLog {
   user  User  @relation(fields: [userId], references: [id])
 
   @@unique([habitId, date])
-  @@index([habitId])
-  @@index([date])
 }
 
 model ScoreboardEntry {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   familyId  String
   userId    String
   week      DateTime // Start of week
@@ -969,8 +887,6 @@ model ScoreboardEntry {
   updatedAt DateTime @updatedAt
 
   @@unique([familyId, userId, week])
-  @@index([familyId])
-  @@index([week])
 }
 
 // ============================================================================
@@ -978,21 +894,20 @@ model ScoreboardEntry {
 // ============================================================================
 
 model FamilyCharterVersion {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   familyId  String
   version   Int
-  content   String   @db.Text
+  content   String
   createdAt DateTime @default(now())
 
   family      Family             @relation(fields: [familyId], references: [id], onDelete: Cascade)
   signoffs    CharterSignoff[]
 
   @@unique([familyId, version])
-  @@index([familyId])
 }
 
 model CharterSignoff {
-  id               String   @id @default(cuid())
+  id               String   @id @default(cuid()) @map("_id")
   charterVersionId String
   userId           String
   signedAt         DateTime @default(now())
@@ -1000,7 +915,6 @@ model CharterSignoff {
   charterVersion FamilyCharterVersion @relation(fields: [charterVersionId], references: [id], onDelete: Cascade)
 
   @@unique([charterVersionId, userId])
-  @@index([charterVersionId])
 }
 
 // ============================================================================
@@ -1008,7 +922,7 @@ model CharterSignoff {
 // ============================================================================
 
 model Notification {
-  id        String           @id @default(cuid())
+  id        String           @id @default(cuid()) @map("_id")
   userId    String
   familyId  String
   type      NotificationType
@@ -1020,10 +934,6 @@ model Notification {
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([familyId])
-  @@index([isRead])
 }
 
 enum NotificationType {
@@ -1042,7 +952,7 @@ enum NotificationType {
 }
 
 model AuditLog {
-  id         String     @id @default(cuid())
+  id         String     @id @default(cuid()) @map("_id")
   familyId   String
   userId     String
   event      AuditEvent
@@ -1055,11 +965,6 @@ model AuditLog {
 
   family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id])
-
-  @@index([familyId])
-  @@index([userId])
-  @@index([event])
-  @@index([createdAt])
 }
 
 enum AuditEvent {

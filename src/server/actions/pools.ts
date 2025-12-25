@@ -1,6 +1,6 @@
 'use server';
 
-import { prisma, AuditEvent, Prisma } from '@/lib/db';
+import { prisma, AuditEvent } from '@/lib/db';
 import { auth } from '@/lib/auth/config';
 import { createPoolSchema, contributeToPoolSchema, withdrawalRequestSchema, approvalDecisionSchema } from '@/lib/validation/schemas';
 import { hasPermission, canApproveWithdrawals } from '@/lib/auth/rbac';
@@ -43,7 +43,7 @@ export async function createPoolAction(formData: FormData): Promise<ActionResult
       name: result.data.name,
       type: result.data.type,
       description: result.data.description,
-      targetAmount: new Prisma.Decimal(result.data.targetAmount),
+      targetAmount: result.data.targetAmount,
       deadline: result.data.deadline,
     },
   });
@@ -99,7 +99,7 @@ export async function contributeToPoolAction(
     data: {
       poolId,
       userId: session.user.id,
-      amount: new Prisma.Decimal(amount),
+      amount,
       type,
       status: 'PENDING',
       idempotencyKey,
@@ -193,7 +193,7 @@ export async function requestWithdrawalAction(formData: FormData): Promise<Actio
     return { success: false, error: 'Pool not found' };
   }
 
-  if (pool.currentAmount.lessThan(amount)) {
+  if (pool.currentAmount < amount) {
     return { success: false, error: 'Insufficient pool balance' };
   }
 
@@ -216,7 +216,7 @@ export async function requestWithdrawalAction(formData: FormData): Promise<Actio
       data: {
         poolId,
         requesterId: session.user.id,
-        amount: new Prisma.Decimal(amount),
+        amount,
         reason,
         idempotencyKey,
       },
@@ -352,20 +352,20 @@ export async function approveWithdrawalAction(formData: FormData): Promise<Actio
       });
 
       if (finalStatus === 'APPROVED') {
-        // Create ledger entry and update pool balance
-        const newBalance = request.pool.currentAmount.minus(request.amount);
-        
-        await tx.ledgerEntry.create({
-          data: {
-            poolId: request.poolId,
-            withdrawalRequestId,
-            type: 'WITHDRAWAL',
-            amount: request.amount.negated(),
-            balanceAfter: newBalance,
-            description: `Withdrawal: ${request.reason}`,
-            idempotencyKey: generateLedgerIdempotencyKey('withdrawal', withdrawalRequestId),
-          },
-        });
+         // Create ledger entry and update pool balance
+         const newBalance = request.pool.currentAmount - request.amount;
+         
+         await tx.ledgerEntry.create({
+           data: {
+             poolId: request.poolId,
+             withdrawalRequestId,
+             type: 'WITHDRAWAL',
+             amount: -request.amount,
+             balanceAfter: newBalance,
+             description: `Withdrawal: ${request.reason}`,
+             idempotencyKey: generateLedgerIdempotencyKey('withdrawal', withdrawalRequestId),
+           },
+         });
 
         await tx.pool.update({
           where: { id: request.poolId },

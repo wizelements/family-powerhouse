@@ -6,9 +6,9 @@ export async function GET() {
 
   // Database check
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await prisma.user.findFirst({ take: 1 });
     checks.database = { status: 'ok' };
-  } catch (error) {
+  } catch {
     checks.database = { status: 'error', message: 'Database connection failed' };
   }
 
