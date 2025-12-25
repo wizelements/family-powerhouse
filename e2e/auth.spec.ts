@@ -40,10 +40,6 @@ test.describe('Authentication', () => {
 });
 
 test.describe('Onboarding', () => {
-  test.beforeEach(async ({ page }) => {
-    // This would need proper auth setup for real tests
-    // For now, just checking the page loads
-  });
 
   test('onboarding page shows options', async ({ page }) => {
     // Skip if not authenticated
