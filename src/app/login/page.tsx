@@ -24,23 +24,29 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Welcome Back</CardTitle>
+          <div className="mb-2">
+            <div className="text-4xl mb-3">🏠</div>
+          </div>
+          <CardTitle>Welcome Back</CardTitle>
           <CardDescription>Sign in to your Family Powerhouse account</CardDescription>
         </CardHeader>
         <form action={handleSubmit}>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5">
             {error && (
-              <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">
-                {error}
+              <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 text-sm p-4 rounded-lg">
+                <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <span>{error}</span>
               </div>
             )}
             <Input
               name="email"
               type="email"
-              label="Email"
+              label="Email Address"
               placeholder="you@example.com"
               required
               autoComplete="email"
@@ -54,14 +60,14 @@ export default function LoginPage() {
               autoComplete="current-password"
             />
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" isLoading={isLoading}>
-              Sign In
+          <CardFooter>
+            <Button type="submit" className="w-full" isLoading={isLoading} size="lg">
+              {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
-            <p className="text-sm text-gray-600 text-center">
+            <p className="text-sm text-gray-600 text-center w-full">
               Don't have an account?{' '}
-              <Link href="/signup" className="text-blue-600 hover:underline">
-                Sign up
+              <Link href="/signup" className="font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                Create one
               </Link>
             </p>
           </CardFooter>

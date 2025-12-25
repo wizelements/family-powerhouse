@@ -6,7 +6,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className = '', ...props }, ref) => (
     <div
       ref={ref}
-      className={`rounded-xl border border-gray-200 bg-white shadow-sm ${className}`}
+      className={`rounded-xl border border-gray-200 bg-white shadow-md hover:shadow-lg transition-shadow duration-200 ${className}`}
       {...props}
     />
   )
@@ -17,7 +17,7 @@ const CardHeader = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className = '', ...props }, ref) => (
     <div
       ref={ref}
-      className={`flex flex-col space-y-1.5 p-6 ${className}`}
+      className={`flex flex-col space-y-2 p-6 border-b border-gray-100 ${className}`}
       {...props}
     />
   )
@@ -28,7 +28,7 @@ const CardTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTML
   ({ className = '', ...props }, ref) => (
     <h3
       ref={ref}
-      className={`text-lg font-semibold leading-none tracking-tight ${className}`}
+      className={`text-xl font-bold leading-tight text-gray-900 ${className}`}
       {...props}
     />
   )
@@ -39,7 +39,7 @@ const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttribu
   ({ className = '', ...props }, ref) => (
     <p
       ref={ref}
-      className={`text-sm text-gray-600 ${className}`}
+      className={`text-sm text-gray-500 font-medium ${className}`}
       {...props}
     />
   )
@@ -48,7 +48,7 @@ CardDescription.displayName = 'CardDescription';
 
 const CardContent = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className = '', ...props }, ref) => (
-    <div ref={ref} className={`p-6 pt-0 ${className}`} {...props} />
+    <div ref={ref} className={`p-6 ${className}`} {...props} />
   )
 );
 CardContent.displayName = 'CardContent';
@@ -57,7 +57,7 @@ const CardFooter = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className = '', ...props }, ref) => (
     <div
       ref={ref}
-      className={`flex items-center p-6 pt-0 ${className}`}
+      className={`flex flex-col gap-3 p-6 border-t border-gray-100 ${className}`}
       {...props}
     />
   )
