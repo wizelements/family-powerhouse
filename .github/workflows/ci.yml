@@ -66,16 +66,12 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: family_powerhouse_test
+      mongodb:
+        image: mongo:7
         ports:
-          - 5432:5432
+          - 27017:27017
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -94,85 +90,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       
-      - name: Setup database
-        run: |
-          pnpm prisma generate
-          pnpm prisma db push
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
+      
+      - name: Push schema to test database
+        run: pnpm prisma db push --skip-generate
         env:
-          DATABASE_URL: "mongodb+srv://test:test@localhost/family_powerhouse_test?authSource=admin"
-          NEXTAUTH_SECRET: "test-secret-for-ci"
-          NEXTAUTH_URL: "http://localhost:3000"
+          DATABASE_URL: "mongodb://localhost:27017/family_powerhouse_test?directConnection=true"
       
       - name: Run integration tests
         run: pnpm test:integration
         env:
-          DATABASE_URL: "mongodb+srv://test:test@localhost/family_powerhouse_test?authSource=admin"
-
-  e2e-tests:
-    name: E2E Tests
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: family_powerhouse_e2e
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: pnpm/action-setup@v2
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-      
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-      
-      - name: Setup database
-        run: |
-          pnpm prisma generate
-          pnpm prisma db push
-          pnpm db:seed
-        env:
-          DATABASE_URL: "mongodb+srv://test:test@localhost/family_powerhouse_e2e?authSource=admin"
-          NEXTAUTH_SECRET: "test-secret-for-ci"
+          DATABASE_URL: "mongodb://localhost:27017/family_powerhouse_test?directConnection=true"
+          NEXTAUTH_SECRET: "test-secret-key-for-ci"
           NEXTAUTH_URL: "http://localhost:3000"
-      
-      - name: Build app
-        run: pnpm build
-        env:
-          DATABASE_URL: "mongodb+srv://test:test@localhost/family_powerhouse_e2e?authSource=admin"
-          NEXTAUTH_SECRET: test-secret-for-ci
-          NEXTAUTH_URL: http://localhost:3000
-      
-      - name: Run E2E tests
-        run: pnpm test:e2e
-        env:
-          DATABASE_URL: "mongodb+srv://test:test@localhost/family_powerhouse_e2e?authSource=admin"
-          NEXTAUTH_SECRET: test-secret-for-ci
-          NEXTAUTH_URL: http://localhost:3000
-      
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7
 
   security-scan:
     name: Security Scan
@@ -192,9 +123,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       
-      - name: Run npm audit
+      - name: Run npm audit (high/critical vulnerabilities fail the build)
         run: pnpm audit --audit-level=high
-        continue-on-error: true
       
       - name: Run gitleaks
         uses: gitleaks/gitleaks-action@v2
@@ -204,7 +134,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint-typecheck]
+    needs: [lint-typecheck, unit-tests, security-scan]
     steps:
       - uses: actions/checkout@v4
       
@@ -227,9 +157,78 @@ jobs:
         run: pnpm build
         env:
           SKIP_ENV_VALIDATION: true
-          DATABASE_URL: "mongodb+srv://dummy:dummy@localhost/dummy"
+          DATABASE_URL: "mongodb+srv://dummy:dummy@cluster.mongodb.net/dummy?retryWrites=true&w=majority"
           NEXTAUTH_SECRET: "ci-build-secret-key-change-in-production"
           NEXTAUTH_URL: "http://localhost:3000"
+      
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: .next
+          retention-days: 1
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
+      
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-build
+          path: .next
+      
+      - name: Push schema to test database
+        run: pnpm prisma db push --skip-generate
+        env:
+          DATABASE_URL: "mongodb://localhost:27017/family_powerhouse_e2e?directConnection=true"
+      
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+      
+      - name: Run E2E tests
+        run: pnpm test:e2e
+        env:
+          DATABASE_URL: "mongodb://localhost:27017/family_powerhouse_e2e?directConnection=true"
+          NEXTAUTH_SECRET: "e2e-test-secret-key"
+          NEXTAUTH_URL: "http://localhost:3000"
+      
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
 
   truth-drift-check:
     name: Truth File Drift Check

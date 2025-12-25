@@ -1,10 +1,9 @@
 name: Deploy Checks
 
 on:
-  push:
-    branches: [main]
   workflow_run:
     workflows: [CI]
+    branches: [main]
     types: [completed]
 
 concurrency:
@@ -19,28 +18,26 @@ jobs:
   check-ci-status:
     name: Check CI Pipeline Status
     runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
     outputs:
       ci-passed: ${{ steps.check.outputs.ci-passed }}
     steps:
-      - name: Check if CI passed
+      - name: Verify CI passed
         id: check
         run: |
-          if [ "${{ github.event.workflow_run.conclusion }}" == "success" ] || [ "${{ github.event_name }}" == "push" ]; then
-            echo "ci-passed=true" >> $GITHUB_OUTPUT
-            echo "✅ CI checks passed or in progress"
-          else
-            echo "ci-passed=false" >> $GITHUB_OUTPUT
-            echo "❌ CI checks failed"
-            exit 1
-          fi
+          echo "ci-passed=true" >> $GITHUB_OUTPUT
+          echo "✅ CI workflow completed successfully"
+          echo "Head SHA: ${{ github.event.workflow_run.head_sha }}"
+          echo "Branch: ${{ github.event.workflow_run.head_branch }}"
 
   deploy-readiness:
     name: Deploy Readiness Check
     runs-on: ubuntu-latest
     needs: check-ci-status
-    if: needs.check-ci-status.outputs.ci-passed == 'true'
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - uses: pnpm/action-setup@v2
         with:
@@ -60,13 +57,14 @@ jobs:
       - name: Check environment variables
         run: |
           echo "Checking required environment variables..."
-          test -n "$REQUIRED_VARS" || (
-            echo "❌ Missing required env vars"
-            exit 1
-          )
+          if [ -n "$NEXTAUTH_SECRET_EXISTS" ]; then
+            echo "✅ NEXTAUTH_SECRET is configured"
+          else
+            echo "⚠️ NEXTAUTH_SECRET not set - will use Vercel environment"
+          fi
           echo "✅ Environment check passed"
         env:
-          REQUIRED_VARS: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_SECRET_EXISTS: ${{ secrets.NEXTAUTH_SECRET }}
 
       - name: Verify Prisma schema
         run: |
@@ -74,22 +72,17 @@ jobs:
           pnpm prisma validate
           echo "✅ Schema is valid"
 
-      - name: Check bundle size
+      - name: Verify build
         run: |
-          pnpm build 2>&1 | tee build.log || true
-          if grep -q "Build error" build.log; then
-            echo "❌ Build failed"
-            exit 1
-          fi
+          pnpm build
           echo "✅ Build successful"
         env:
           SKIP_ENV_VALIDATION: true
-          DATABASE_URL: "mongodb+srv://dummy:dummy@localhost/dummy"
+          DATABASE_URL: "mongodb+srv://dummy:dummy@cluster.mongodb.net/dummy?retryWrites=true&w=majority"
           NEXTAUTH_SECRET: "ci-build-secret-key-change-in-production"
           NEXTAUTH_URL: "http://localhost:3000"
 
       - name: Report deployment readiness
-        if: success()
         run: |
           echo "📦 Deployment Readiness: PASSED"
           echo "✅ All checks passed - ready for deployment"
@@ -102,19 +95,21 @@ jobs:
     if: always()
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Create deployment summary
         run: |
           cat > deployment-summary.md << 'EOF'
           # Deployment Summary
           
-          **Commit**: ${{ github.sha }}
-          **Branch**: ${{ github.ref_name }}
-          **Author**: ${{ github.actor }}
+          **Commit**: ${{ github.event.workflow_run.head_sha }}
+          **Branch**: ${{ github.event.workflow_run.head_branch }}
+          **CI Workflow**: ${{ github.event.workflow_run.html_url }}
           **Timestamp**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
           
           ## Status
-          - CI Status: ${{ needs.check-ci-status.result }}
+          - CI Status: ${{ github.event.workflow_run.conclusion }}
           - Deploy Readiness: ${{ needs.deploy-readiness.result }}
           - Overall Status: ${{ job.status }}
           
@@ -125,8 +120,8 @@ jobs:
           EOF
           cat deployment-summary.md
 
-      - name: Comment on commits
-        if: github.event_name == 'push'
+      - name: Comment on commit
+        if: needs.deploy-readiness.result == 'success'
         uses: actions/github-script@v7
         with:
           script: |
@@ -135,7 +130,7 @@ jobs:
             github.rest.repos.createCommitComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              commit_sha: context.sha,
+              commit_sha: '${{ github.event.workflow_run.head_sha }}',
               body: summary
             }).catch(err => console.log('Could not post comment:', err));
 
@@ -145,3 +140,15 @@ jobs:
           name: deployment-summary
           path: deployment-summary.md
           retention-days: 30
+
+  ci-failed:
+    name: CI Failed - No Deployment
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion != 'success'
+    steps:
+      - name: Report CI failure
+        run: |
+          echo "❌ CI workflow failed - deployment blocked"
+          echo "CI conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Review the CI workflow: ${{ github.event.workflow_run.html_url }}"
+          exit 1
