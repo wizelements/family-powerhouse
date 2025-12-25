@@ -86,7 +86,7 @@ export async function createGuestAccountAction(): Promise<ActionResult<{ guestTo
 
     // Create guest user with unique guest ID in email
     const guestId = randomBytes(8).toString('hex');
-    const guestEmail = `guest-${guestId}@demo.local`;
+    const guestEmail = `guest-${guestId}@guest.familypowerhouse.app`;
 
     const createdUser = await prisma.user.create({
       data: {
@@ -156,65 +156,6 @@ export async function signInGuestAction(guestToken: string): Promise<ActionResul
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to sign in as guest',
-    };
-  }
-}
-
-export async function createDemoFamilyAction(): Promise<ActionResult<{ familyId: string; demoToken: string }>> {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, error: 'Must be authenticated' };
-    }
-
-    const userId = session.user.id;
-
-    // Create demo family
-    const demoFamily = await prisma.family.create({
-      data: {
-        name: 'Demo Family',
-        slug: `demo-${Date.now()}-${randomBytes(4).toString('hex')}`,
-        description: 'Your demo family to explore Family Powerhouse',
-        memberships: {
-          create: {
-            userId,
-            role: 'OWNER',
-            status: 'ACTIVE',
-          },
-        },
-      },
-    });
-
-    // Create demo data (channels, pools, etc.)
-    await prisma.channel.create({
-      data: {
-        familyId: demoFamily.id,
-        name: 'general',
-        type: 'PUBLIC',
-        isDefault: true,
-      },
-    });
-
-    // Create a sample pool
-    await prisma.pool.create({
-      data: {
-        familyId: demoFamily.id,
-        createdById: userId,
-        name: 'Summer Vacation Fund',
-        type: 'TRIP',
-        targetAmount: 5000,
-        description: 'Demo pool for exploring money pooling features',
-      },
-    });
-
-    return {
-      success: true,
-      data: { familyId: demoFamily.id, demoToken: randomBytes(16).toString('hex') },
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to create demo family',
     };
   }
 }

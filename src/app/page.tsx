@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import GuestAuthButton from '@/components/guest-auth-button';
+import GuestAccessButton from '@/components/guest-auth-button';
 
 export default function HomePage() {
   return (
@@ -32,7 +32,7 @@ export default function HomePage() {
                 Start Free Today
               </Button>
             </Link>
-            <GuestAuthButton />
+            <GuestAccessButton />
             <Link href="#features">
               <Button size="lg" variant="outline" className="w-full sm:w-auto">
                 See Features
