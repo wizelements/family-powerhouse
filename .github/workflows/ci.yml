@@ -100,6 +100,8 @@ jobs:
           pnpm prisma db push
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/family_powerhouse_test
+          NEXTAUTH_SECRET: "test-secret-for-ci"
+          NEXTAUTH_URL: "http://localhost:3000"
       
       - name: Run integration tests
         run: pnpm test:integration
@@ -148,6 +150,8 @@ jobs:
           pnpm db:seed
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/family_powerhouse_e2e
+          NEXTAUTH_SECRET: "test-secret-for-ci"
+          NEXTAUTH_URL: "http://localhost:3000"
       
       - name: Build app
         run: pnpm build
@@ -223,6 +227,9 @@ jobs:
         run: pnpm build
         env:
           SKIP_ENV_VALIDATION: true
+          DATABASE_URL: "postgresql://dummy:dummy@localhost/dummy"
+          NEXTAUTH_SECRET: "ci-build-secret-key-change-in-production"
+          NEXTAUTH_URL: "http://localhost:3000"
 
   truth-drift-check:
     name: Truth File Drift Check
