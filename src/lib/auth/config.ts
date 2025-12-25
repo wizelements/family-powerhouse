@@ -14,11 +14,13 @@ declare module 'next-auth' {
       image: string | null;
       familyId: string | null;
       role: Role | null;
+      isGuest?: boolean;
     };
   }
   interface User {
     familyId?: string | null;
     role?: Role | null;
+    isGuest?: boolean;
   }
 }
 
@@ -54,7 +56,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           },
         });
 
-        if (!user || !user.passwordHash) {
+        if (!user) {
+          return null;
+        }
+
+        // Guest authentication: verify guest token
+        if (user.isGuest && user.guestToken) {
+          const isValidGuestToken = credentials.password === user.guestToken;
+          
+          if (!isValidGuestToken) {
+            return null;
+          }
+
+          // Check if token expired
+          if (user.guestExpiresAt && user.guestExpiresAt < new Date()) {
+            return null;
+          }
+
+          const membership = user.memberships[0];
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            familyId: membership?.familyId ?? null,
+            role: membership?.role ?? null,
+            isGuest: true,
+          };
+        }
+
+        // Regular password authentication
+        if (!user.passwordHash) {
           return null;
         }
 
@@ -86,6 +119,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id as string;
         token.familyId = user.familyId as string | null | undefined;
         token.role = user.role as Role | null | undefined;
+        token.isGuest = (user as { isGuest?: boolean }).isGuest ?? false;
       }
       
       if (trigger === 'update' && session) {
@@ -100,6 +134,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string;
         session.user.familyId = (token.familyId as string | null) ?? null;
         session.user.role = (token.role as Role | null) ?? null;
+        session.user.isGuest = (token.isGuest as boolean) ?? false;
       }
       return session;
     },

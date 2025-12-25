@@ -18,6 +18,9 @@ model User {
   name          String?
   passwordHash  String?
   image         String?
+  isGuest       Boolean   @default(false)
+  guestToken    String?   @unique
+  guestExpiresAt DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
