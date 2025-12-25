@@ -1,5 +1,5 @@
-import { auth } from '@/lib/auth/config';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 const publicPaths = [
   '/',
@@ -13,16 +13,28 @@ const publicPaths = [
 
 const authOnlyPaths = ['/onboarding'];
 
-export default auth((req) => {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Always allow public paths
+  // Always allow public paths without any auth check
   if (publicPaths.some((path) => pathname.startsWith(path))) {
     return NextResponse.next();
   }
 
-  const isLoggedIn = !!req.auth;
-  const hasFamilyId = !!req.auth?.user?.familyId;
+  // Check if auth is configured
+  if (!process.env.AUTH_SECRET) {
+    // In development without auth, just allow everything
+    console.warn('AUTH_SECRET not configured');
+    return NextResponse.next();
+  }
+
+  // Dynamically import auth to avoid build-time errors
+  const { auth } = await import('@/lib/auth/config');
+  
+  // Get session
+  const session = await auth();
+  const isLoggedIn = !!session?.user;
+  const hasFamilyId = !!session?.user?.familyId;
 
   // Redirect unauthenticated users to login
   if (!isLoggedIn) {
@@ -42,7 +54,7 @@ export default auth((req) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [
