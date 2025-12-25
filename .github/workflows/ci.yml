@@ -65,18 +65,14 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
-    services:
-      mongodb:
-        image: mongo:7
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Start MongoDB Replica Set
+        uses: supercharge/mongodb-github-action@1.11.0
+        with:
+          mongodb-version: '7.0'
+          mongodb-replica-set: rs0
       
       - uses: pnpm/action-setup@v2
         with:
@@ -96,12 +92,12 @@ jobs:
       - name: Push schema to test database
         run: pnpm prisma db push --skip-generate
         env:
-          DATABASE_URL: "mongodb://localhost:27017/family_powerhouse_test?directConnection=true"
+          DATABASE_URL: "mongodb://127.0.0.1:27017/family_powerhouse_test?replicaSet=rs0&directConnection=true"
       
       - name: Run integration tests
         run: pnpm test:integration
         env:
-          DATABASE_URL: "mongodb://localhost:27017/family_powerhouse_test?directConnection=true"
+          DATABASE_URL: "mongodb://127.0.0.1:27017/family_powerhouse_test?replicaSet=rs0&directConnection=true"
           NEXTAUTH_SECRET: "test-secret-key-for-ci"
           NEXTAUTH_URL: "http://localhost:3000"
 
@@ -173,18 +169,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build]
     if: github.ref == 'refs/heads/main'
-    services:
-      mongodb:
-        image: mongo:7
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Start MongoDB Replica Set
+        uses: supercharge/mongodb-github-action@1.11.0
+        with:
+          mongodb-version: '7.0'
+          mongodb-replica-set: rs0
       
       - uses: pnpm/action-setup@v2
         with:
@@ -210,7 +202,7 @@ jobs:
       - name: Push schema to test database
         run: pnpm prisma db push --skip-generate
         env:
-          DATABASE_URL: "mongodb://localhost:27017/family_powerhouse_e2e?directConnection=true"
+          DATABASE_URL: "mongodb://127.0.0.1:27017/family_powerhouse_e2e?replicaSet=rs0&directConnection=true"
       
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
@@ -218,7 +210,7 @@ jobs:
       - name: Run E2E tests
         run: pnpm test:e2e
         env:
-          DATABASE_URL: "mongodb://localhost:27017/family_powerhouse_e2e?directConnection=true"
+          DATABASE_URL: "mongodb://127.0.0.1:27017/family_powerhouse_e2e?replicaSet=rs0&directConnection=true"
           NEXTAUTH_SECRET: "e2e-test-secret-key"
           NEXTAUTH_URL: "http://localhost:3000"
       
