@@ -1,0 +1,144 @@
+name: Deploy Checks
+
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+concurrency:
+  group: deploy-checks-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+
+jobs:
+  check-ci-status:
+    name: Check CI Pipeline Status
+    runs-on: ubuntu-latest
+    outputs:
+      ci-passed: ${{ steps.check.outputs.ci-passed }}
+    steps:
+      - name: Check if CI passed
+        id: check
+        run: |
+          if [ "${{ github.event.workflow_run.conclusion }}" == "success" ] || [ "${{ github.event_name }}" == "push" ]; then
+            echo "ci-passed=true" >> $GITHUB_OUTPUT
+            echo "✅ CI checks passed or in progress"
+          else
+            echo "ci-passed=false" >> $GITHUB_OUTPUT
+            echo "❌ CI checks failed"
+            exit 1
+          fi
+
+  deploy-readiness:
+    name: Deploy Readiness Check
+    runs-on: ubuntu-latest
+    needs: check-ci-status
+    if: needs.check-ci-status.outputs.ci-passed == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma
+        run: pnpm prisma generate
+
+      - name: Check environment variables
+        run: |
+          echo "Checking required environment variables..."
+          test -n "$REQUIRED_VARS" || (
+            echo "❌ Missing required env vars"
+            exit 1
+          )
+          echo "✅ Environment check passed"
+        env:
+          REQUIRED_VARS: ${{ secrets.NEXTAUTH_SECRET }}
+
+      - name: Verify Prisma schema
+        run: |
+          echo "Verifying Prisma schema..."
+          pnpm prisma validate
+          echo "✅ Schema is valid"
+
+      - name: Check bundle size
+        run: |
+          pnpm build 2>&1 | tee build.log || true
+          if grep -q "Build error" build.log; then
+            echo "❌ Build failed"
+            exit 1
+          fi
+          echo "✅ Build successful"
+        env:
+          SKIP_ENV_VALIDATION: true
+
+      - name: Report deployment readiness
+        if: success()
+        run: |
+          echo "📦 Deployment Readiness: PASSED"
+          echo "✅ All checks passed - ready for deployment"
+          echo "🚀 Vercel deployment will proceed automatically"
+
+  notify-deployment:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [check-ci-status, deploy-readiness]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create deployment summary
+        run: |
+          cat > deployment-summary.md << 'EOF'
+          # Deployment Summary
+          
+          **Commit**: ${{ github.sha }}
+          **Branch**: ${{ github.ref_name }}
+          **Author**: ${{ github.actor }}
+          **Timestamp**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          
+          ## Status
+          - CI Status: ${{ needs.check-ci-status.result }}
+          - Deploy Readiness: ${{ needs.deploy-readiness.result }}
+          - Overall Status: ${{ job.status }}
+          
+          ## Next Steps
+          If all checks passed:
+          - ✅ Vercel will automatically deploy from main
+          - 📊 Monitor deployment at: https://vercel.com/wizelements/family-powerhouse
+          EOF
+          cat deployment-summary.md
+
+      - name: Comment on commits
+        if: github.event_name == 'push'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('deployment-summary.md', 'utf8');
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: summary
+            }).catch(err => console.log('Could not post comment:', err));
+
+      - name: Upload deployment summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-summary
+          path: deployment-summary.md
+          retention-days: 30

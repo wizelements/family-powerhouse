@@ -1,5 +1,8 @@
 # Family Powerhouse
 
+[![CI](https://github.com/wizelements/family-powerhouse/actions/workflows/ci.yml/badge.svg)](https://github.com/wizelements/family-powerhouse/actions/workflows/ci.yml)
+[![Deploy Checks](https://github.com/wizelements/family-powerhouse/actions/workflows/deploy-checks.yml/badge.svg)](https://github.com/wizelements/family-powerhouse/actions/workflows/deploy-checks.yml)
+
 A production-grade, multi-tenant web application for families to stay connected, pool money for shared goals, track budgets, plan trips, and build entrepreneurial wealth systems together.
 
 ## Features
@@ -113,6 +116,7 @@ See [docs/RUNBOOK.md](docs/RUNBOOK.md) for detailed deployment instructions.
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - System design
 - [SECURITY.md](docs/SECURITY.md) - Security implementation
 - [RUNBOOK.md](docs/RUNBOOK.md) - Deployment and operations guide
+- [WORKFLOW_CHECKS.md](docs/WORKFLOW_CHECKS.md) - CI/CD pipeline and automated checks
 
 ## Contributing
 
