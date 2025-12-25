@@ -8,6 +8,9 @@ import { redirect } from 'next/navigation';
 import type { ActionResult } from '@/types';
 import { randomBytes } from 'crypto';
 
+// Demo family slug for guest access
+const DEMO_FAMILY_SLUG = 'demo-family';
+
 export async function signUpAction(formData: FormData): Promise<ActionResult<{ userId: string }>> {
   const rawData = {
     email: formData.get('email'),
@@ -80,6 +83,30 @@ export async function signOutAction(): Promise<void> {
 
 export async function createGuestAccountAction(): Promise<ActionResult<{ guestToken: string; userId: string }>> {
   try {
+    // Find or create demo family
+    let demoFamily = await prisma.family.findUnique({
+      where: { slug: DEMO_FAMILY_SLUG },
+    });
+
+    if (!demoFamily) {
+      // Create demo family if it doesn't exist
+      demoFamily = await prisma.family.create({
+        data: {
+          name: 'Demo Family',
+          slug: DEMO_FAMILY_SLUG,
+          description: 'A sample family to explore Family Powerhouse features',
+        },
+      });
+
+      // Create default channels for demo family
+      await prisma.channel.createMany({
+        data: [
+          { familyId: demoFamily.id, name: 'general', type: 'PUBLIC', isDefault: true },
+          { familyId: demoFamily.id, name: 'announcements', type: 'ANNOUNCEMENT' },
+        ],
+      });
+    }
+
     // Generate secure guest token
     const guestToken = randomBytes(32).toString('hex');
     const guestExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
@@ -91,10 +118,18 @@ export async function createGuestAccountAction(): Promise<ActionResult<{ guestTo
     const createdUser = await prisma.user.create({
       data: {
         email: guestEmail,
-        name: `Guest User ${guestId.slice(0, 6)}`,
+        name: `Guest ${guestId.slice(0, 6).toUpperCase()}`,
         isGuest: true,
         guestToken,
         guestExpiresAt,
+        // Create membership to demo family with GUEST role
+        memberships: {
+          create: {
+            familyId: demoFamily.id,
+            role: 'GUEST',
+            status: 'ACTIVE',
+          },
+        },
       },
     });
 

@@ -4,6 +4,28 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 
+function GuestBanner() {
+  return (
+    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl p-4 mb-6 shadow-lg">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">👋</span>
+          <div>
+            <h3 className="font-semibold">Welcome, Guest!</h3>
+            <p className="text-blue-100 text-sm">You&apos;re viewing a demo family with sample data.</p>
+          </div>
+        </div>
+        <Link
+          href="/signup"
+          className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+        >
+          Create Your Family
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 async function getDashboardData(familyId: string) {
   const [pools, trips, tasks, habits] = await Promise.all([
     prisma.pool.findMany({
@@ -35,14 +57,23 @@ export default async function DashboardPage() {
   if (!session?.user?.familyId) return null;
 
   const { pools, trips, tasks, habits } = await getDashboardData(session.user.familyId);
+  const isGuest = session.user.isGuest;
 
   return (
     <div className="space-y-8">
+      {isGuest && <GuestBanner />}
+      
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          {`Welcome back, ${session.user.name?.split(' ')[0] || 'there'}!`}
+          {isGuest 
+            ? 'Explore Family Powerhouse' 
+            : `Welcome back, ${session.user.name?.split(' ')[0] || 'there'}!`}
         </h1>
-        <p className="text-gray-600 mt-1">Here&apos;s what&apos;s happening with your family.</p>
+        <p className="text-gray-600 mt-1">
+          {isGuest 
+            ? 'This is a demo family showcasing all features. Create an account to start your own!' 
+            : "Here's what's happening with your family."}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
