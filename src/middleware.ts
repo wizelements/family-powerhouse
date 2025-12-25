@@ -8,40 +8,53 @@ const publicPaths = [
   '/signup',
   '/api/auth',
   '/api/webhooks',
+  '/api/health',
   '/invite',
 ];
 
 const authOnlyPaths = ['/onboarding'];
 
-export default auth((req) => {
+async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const isLoggedIn = !!req.auth;
-  const hasFamilyId = !!req.auth?.user?.familyId;
 
-  // Allow public paths
+  // Always allow public paths without auth check
   if (publicPaths.some((path) => pathname.startsWith(path))) {
     return NextResponse.next();
   }
 
-  // Redirect unauthenticated users to login
-  if (!isLoggedIn) {
-    const loginUrl = new URL('/login', req.url);
-    loginUrl.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // Auth-only paths (no family required)
-  if (authOnlyPaths.some((path) => pathname.startsWith(path))) {
+  // Check if auth is configured before using it
+  if (!process.env.AUTH_SECRET) {
+    console.warn('AUTH_SECRET not configured, allowing request');
     return NextResponse.next();
   }
 
-  // Redirect users without family to onboarding
-  if (!hasFamilyId && pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/onboarding', req.url));
-  }
+  // Use auth middleware for protected routes
+  return auth((authReq) => {
+    const isLoggedIn = !!authReq.auth;
+    const hasFamilyId = !!authReq.auth?.user?.familyId;
 
-  return NextResponse.next();
-});
+    // Redirect unauthenticated users to login
+    if (!isLoggedIn) {
+      const loginUrl = new URL('/login', authReq.url);
+      loginUrl.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Auth-only paths (no family required)
+    if (authOnlyPaths.some((path) => pathname.startsWith(path))) {
+      return NextResponse.next();
+    }
+
+    // Redirect users without family to onboarding
+    if (!hasFamilyId && pathname.startsWith('/dashboard')) {
+      return NextResponse.redirect(new URL('/onboarding', authReq.url));
+    }
+
+    return NextResponse.next();
+  })(req, {});
+}
+
+export default middleware;
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)'],

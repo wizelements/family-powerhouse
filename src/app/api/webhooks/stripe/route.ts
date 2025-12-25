@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, AuditEvent, Prisma } from '@/lib/db';
-import { verifyWebhookSignature } from '@/lib/stripe';
 import { generateLedgerIdempotencyKey } from '@/lib/utils/idempotency';
 import { triggerFamilyEvent } from '@/lib/pusher/server';
 import type Stripe from 'stripe';
 
 export async function POST(req: NextRequest) {
+  // Check if Stripe is configured
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
+  }
+
+  // Dynamic import to avoid build-time errors
+  const { verifyWebhookSignature } = await import('@/lib/stripe');
+
   const body = await req.text();
   const signature = req.headers.get('stripe-signature');
 

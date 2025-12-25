@@ -124,6 +124,15 @@ export async function contributeToPoolAction(
   // Create Stripe checkout session
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   
+  // Check if Stripe is configured
+  if (!process.env.STRIPE_SECRET_KEY) {
+    await prisma.contribution.update({
+      where: { id: contribution.id },
+      data: { status: 'FAILED' },
+    });
+    return { success: false, error: 'Payment processing not configured' };
+  }
+
   try {
     const checkoutSession = await createContributionCheckoutSession({
       poolId,
