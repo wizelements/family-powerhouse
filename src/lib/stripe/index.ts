@@ -1,12 +1,17 @@
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set');
+function getStripe(): Stripe {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error('STRIPE_SECRET_KEY is not set');
+  }
+  return new Stripe(process.env.STRIPE_SECRET_KEY, {
+    typescript: true,
+  });
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  typescript: true,
-});
+export const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { typescript: true })
+  : (null as unknown as Stripe);
 
 export interface CreateCheckoutSessionParams {
   poolId: string;
