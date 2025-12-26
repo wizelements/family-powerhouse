@@ -446,10 +446,9 @@ export async function cleanupExpiredGuests(): Promise<{ deleted: number }> {
 
     const userIds = expiredGuests.map((u) => u.id);
 
-    // Find demo families created by these users
+    // Find demo families created by these users (where expired guest is OWNER)
     const demoFamilies = await tx.family.findMany({
       where: {
-        settings: { path: ['isDemo'], equals: true },
         memberships: { some: { userId: { in: userIds }, role: 'OWNER' } },
       },
       select: { id: true },
