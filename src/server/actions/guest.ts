@@ -3,7 +3,6 @@
 import { prisma, AuditEvent } from '@/lib/db';
 import { signIn } from '@/lib/auth/config';
 import { v4 as uuidv4 } from 'uuid';
-import { Prisma } from '@prisma/client';
 import { redirect } from 'next/navigation';
 
 const GUEST_EXPIRY_HOURS = 48;
@@ -145,8 +144,8 @@ export async function createGuestSession(): Promise<{ success: boolean; error?: 
           name: 'Summer Vacation Fund',
           type: 'TRIP',
           description: 'Saving for our beach trip in August!',
-          targetAmount: new Prisma.Decimal(3000),
-          currentAmount: new Prisma.Decimal(1250),
+          targetAmount: 3000,
+          currentAmount: 1250,
           status: 'ACTIVE',
           deadline: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
         },
@@ -159,8 +158,8 @@ export async function createGuestSession(): Promise<{ success: boolean; error?: 
           name: 'Emergency Fund',
           type: 'EMERGENCY',
           description: 'Family safety net for unexpected expenses',
-          targetAmount: new Prisma.Decimal(10000),
-          currentAmount: new Prisma.Decimal(4500),
+          targetAmount: 10000,
+          currentAmount: 4500,
           status: 'ACTIVE',
         },
       });
@@ -171,7 +170,7 @@ export async function createGuestSession(): Promise<{ success: boolean; error?: 
           {
             poolId: vacationPool.id,
             userId: demoMembers[0].id,
-            amount: new Prisma.Decimal(500),
+            amount: 500,
             type: 'ONE_TIME',
             status: 'COMPLETED',
             idempotencyKey: `demo-contrib-1-${familySlug}`,
@@ -179,7 +178,7 @@ export async function createGuestSession(): Promise<{ success: boolean; error?: 
           {
             poolId: vacationPool.id,
             userId: demoMembers[1].id,
-            amount: new Prisma.Decimal(250),
+            amount: 250,
             type: 'ONE_TIME',
             status: 'COMPLETED',
             idempotencyKey: `demo-contrib-2-${familySlug}`,
@@ -187,7 +186,7 @@ export async function createGuestSession(): Promise<{ success: boolean; error?: 
           {
             poolId: vacationPool.id,
             userId: user.id,
-            amount: new Prisma.Decimal(500),
+            amount: 500,
             type: 'ONE_TIME',
             status: 'COMPLETED',
             idempotencyKey: `demo-contrib-3-${familySlug}`,
@@ -195,7 +194,7 @@ export async function createGuestSession(): Promise<{ success: boolean; error?: 
           {
             poolId: emergencyPool.id,
             userId: demoMembers[0].id,
-            amount: new Prisma.Decimal(2500),
+            amount: 2500,
             type: 'ONE_TIME',
             status: 'COMPLETED',
             idempotencyKey: `demo-contrib-4-${familySlug}`,
@@ -203,7 +202,7 @@ export async function createGuestSession(): Promise<{ success: boolean; error?: 
           {
             poolId: emergencyPool.id,
             userId: user.id,
-            amount: new Prisma.Decimal(2000),
+            amount: 2000,
             type: 'ONE_TIME',
             status: 'COMPLETED',
             idempotencyKey: `demo-contrib-5-${familySlug}`,
@@ -241,11 +240,11 @@ export async function createGuestSession(): Promise<{ success: boolean; error?: 
       // Create trip budget items
       await tx.tripBudgetItem.createMany({
         data: [
-          { tripId: trip.id, category: 'LODGING', planned: new Prisma.Decimal(1200) },
-          { tripId: trip.id, category: 'TRAVEL', planned: new Prisma.Decimal(800) },
-          { tripId: trip.id, category: 'FOOD', planned: new Prisma.Decimal(500) },
-          { tripId: trip.id, category: 'ACTIVITIES', planned: new Prisma.Decimal(400) },
-          { tripId: trip.id, category: 'BUFFER', planned: new Prisma.Decimal(100) },
+          { tripId: trip.id, category: 'LODGING', planned: 1200 },
+          { tripId: trip.id, category: 'TRAVEL', planned: 800 },
+          { tripId: trip.id, category: 'FOOD', planned: 500 },
+          { tripId: trip.id, category: 'ACTIVITIES', planned: 400 },
+          { tripId: trip.id, category: 'BUFFER', planned: 100 },
         ],
       });
 
@@ -314,10 +313,10 @@ export async function createGuestSession(): Promise<{ success: boolean; error?: 
       // Add budget categories
       await tx.budgetCategory.createMany({
         data: [
-          { budgetId: budget.id, name: 'Groceries', plannedAmount: new Prisma.Decimal(800), color: '#4CAF50' },
-          { budgetId: budget.id, name: 'Utilities', plannedAmount: new Prisma.Decimal(300), color: '#2196F3' },
-          { budgetId: budget.id, name: 'Entertainment', plannedAmount: new Prisma.Decimal(200), color: '#FF9800' },
-          { budgetId: budget.id, name: 'Dining Out', plannedAmount: new Prisma.Decimal(250), color: '#E91E63' },
+          { budgetId: budget.id, name: 'Groceries', plannedAmount: 800, color: '#4CAF50' },
+          { budgetId: budget.id, name: 'Utilities', plannedAmount: 300, color: '#2196F3' },
+          { budgetId: budget.id, name: 'Entertainment', plannedAmount: 200, color: '#FF9800' },
+          { budgetId: budget.id, name: 'Dining Out', plannedAmount: 250, color: '#E91E63' },
         ],
       });
 
