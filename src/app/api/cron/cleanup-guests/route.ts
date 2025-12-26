@@ -48,7 +48,6 @@ export async function GET(req: NextRequest) {
     const deletedFamilies = await prisma.family.deleteMany({
       where: {
         id: { in: demoFamilyIds },
-        settings: { path: ['isDemo'], equals: true },
       },
     });
 
