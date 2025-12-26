@@ -303,7 +303,7 @@ export async function createGuestSession(): Promise<{ success: boolean; error?: 
         data: {
           familyId: family.id,
           name: 'Monthly Household',
-          type: 'SHARED',
+          type: 'HOUSEHOLD',
           startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
           endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
           isActive: true,
