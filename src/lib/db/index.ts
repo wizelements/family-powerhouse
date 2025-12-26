@@ -6,21 +6,17 @@ declare global {
 }
 
 function createPrismaClient(): PrismaClient {
-  if (!process.env.DATABASE_URL) {
-    throw new Error(
-      'DATABASE_URL environment variable is not set. ' +
-      'Please check your .env.local file and ensure DATABASE_URL is configured.'
-    );
-  }
-
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
 }
 
-export const prisma = global.prisma || createPrismaClient();
+// Only create client if DATABASE_URL is set (build-safe)
+export const prisma = process.env.DATABASE_URL
+  ? (global.prisma || createPrismaClient())
+  : (null as unknown as PrismaClient);
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' && process.env.DATABASE_URL) {
   global.prisma = prisma;
 }
 
