@@ -313,10 +313,10 @@ export async function createGuestSession(): Promise<{ success: boolean; error?: 
       // Add budget categories
       await tx.budgetCategory.createMany({
         data: [
-          { budgetId: budget.id, name: 'Groceries', plannedAmount: 800, color: '#4CAF50' },
-          { budgetId: budget.id, name: 'Utilities', plannedAmount: 300, color: '#2196F3' },
-          { budgetId: budget.id, name: 'Entertainment', plannedAmount: 200, color: '#FF9800' },
-          { budgetId: budget.id, name: 'Dining Out', plannedAmount: 250, color: '#E91E63' },
+          { budgetId: budget.id, name: 'Groceries', monthlyLimit: 800, color: '#4CAF50' },
+          { budgetId: budget.id, name: 'Utilities', monthlyLimit: 300, color: '#2196F3' },
+          { budgetId: budget.id, name: 'Entertainment', monthlyLimit: 200, color: '#FF9800' },
+          { budgetId: budget.id, name: 'Dining Out', monthlyLimit: 250, color: '#E91E63' },
         ],
       });
 
