@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { signOutAction } from '@/server/actions/auth';
 import { Button } from '@/components/ui/button';
+import GuestBanner from '@/components/guest-banner';
+import { prisma } from '@/lib/db';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: '🏠' },
@@ -30,8 +32,20 @@ export default async function DashboardLayout({
     redirect('/onboarding');
   }
 
+  // Get guest expiry info if guest user
+  let guestExpiresAt: string | null = null;
+  if (session.user.isGuest) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { guestExpiresAt: true },
+    });
+    guestExpiresAt = user?.guestExpiresAt?.toISOString() || null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Guest Banner */}
+      <GuestBanner isGuest={session.user.isGuest || false} guestExpiresAt={guestExpiresAt} />
       {/* Mobile header */}
       <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <span className="text-lg font-bold text-blue-600">Family Powerhouse</span>
@@ -63,19 +77,37 @@ export default async function DashboardLayout({
             </nav>
             <div className="p-4 border-t border-gray-200">
               <div className="flex items-center mb-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                  {session.user.name?.[0] || session.user.email[0].toUpperCase()}
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${session.user.isGuest ? 'bg-purple-600' : 'bg-blue-600'}`}>
+                  {session.user.isGuest ? '🎭' : (session.user.name?.[0] || session.user.email[0].toUpperCase())}
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-900">{session.user.name || 'User'}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {session.user.name || 'User'}
+                    {session.user.isGuest && <span className="ml-1 text-xs text-purple-600">(Demo)</span>}
+                  </p>
                   <p className="text-xs text-gray-500">{session.user.role}</p>
                 </div>
               </div>
-              <form action={signOutAction}>
-                <Button variant="outline" size="sm" className="w-full" type="submit">
-                  Sign out
-                </Button>
-              </form>
+              {session.user.isGuest ? (
+                <div className="space-y-2">
+                  <Link href="/upgrade">
+                    <Button size="sm" className="w-full bg-purple-600 hover:bg-purple-700">
+                      Upgrade Account
+                    </Button>
+                  </Link>
+                  <form action={signOutAction}>
+                    <Button variant="outline" size="sm" className="w-full" type="submit">
+                      End Demo
+                    </Button>
+                  </form>
+                </div>
+              ) : (
+                <form action={signOutAction}>
+                  <Button variant="outline" size="sm" className="w-full" type="submit">
+                    Sign out
+                  </Button>
+                </form>
+              )}
             </div>
           </div>
         </aside>

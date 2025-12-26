@@ -45,23 +45,37 @@ pnpm db:push
 pnpm dev
 ```
 
-## Environment Variables
+## Required Environment Variables
 
-See `.env.example` for all required environment variables.
+Copy `.env.example` to `.env.local` and configure the following:
 
-### Required
-
-- `DATABASE_URL` - PostgreSQL connection string
-- `NEXTAUTH_URL` - Your app URL
-- `NEXTAUTH_SECRET` - Auth secret (generate with `openssl rand -base64 32`)
-- `STRIPE_SECRET_KEY` - Stripe API key
-- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_URL` | MongoDB Atlas connection string | `mongodb+srv://user:pass@cluster.mongodb.net/db` |
+| `NEXTAUTH_URL` | Your app URL | `http://localhost:3000` |
+| `NEXTAUTH_SECRET` | Auth secret (generate with `openssl rand -base64 32`) | Random 32-byte base64 string |
+| `STRIPE_SECRET_KEY` | Stripe API secret key | `sk_test_...` |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret | `whsec_...` |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key | `pk_test_...` |
 
 ### Optional (Recommended)
 
-- `PUSHER_*` - Real-time chat
-- `R2_*` - File storage
-- `UPSTASH_*` - Rate limiting
+| Variable | Description |
+|----------|-------------|
+| `PUSHER_APP_ID`, `PUSHER_KEY`, `PUSHER_SECRET`, `PUSHER_CLUSTER` | Real-time chat |
+| `NEXT_PUBLIC_PUSHER_KEY`, `NEXT_PUBLIC_PUSHER_CLUSTER` | Pusher client config |
+| `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL` | Cloudflare R2 file storage |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Rate limiting |
+| `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` | Analytics |
+| `NEXT_PUBLIC_APP_URL` | Public app URL |
+
+### Validate Environment
+
+Run the env check script before building:
+
+```bash
+node scripts/check-env.mjs
+```
 
 ## Scripts
 

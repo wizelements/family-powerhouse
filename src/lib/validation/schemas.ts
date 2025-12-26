@@ -225,9 +225,56 @@ export const paginationSchema = z.object({
 });
 
 // ============================================================================
+// TEMPLATE SCHEMAS
+// ============================================================================
+
+export const templateContentSchema = z.object({
+  channels: z.array(z.object({
+    name: z.string(),
+    type: z.enum(['PUBLIC', 'PRIVATE', 'ANNOUNCEMENT']),
+    description: z.string().optional(),
+  })).optional(),
+  pools: z.array(z.object({
+    name: z.string(),
+    type: z.enum(['TRIP', 'EMERGENCY', 'VENTURE', 'CUSTOM']),
+    description: z.string().optional(),
+    targetAmount: z.number().optional(),
+  })).optional(),
+  budgetCategories: z.array(z.object({
+    name: z.string(),
+    monthlyLimit: z.number(),
+    color: z.string().optional(),
+    icon: z.string().optional(),
+  })).optional(),
+  defaultHabits: z.array(z.object({
+    name: z.string(),
+    description: z.string().optional(),
+    frequency: z.enum(['DAILY', 'WEEKLY']),
+    targetCount: z.number().default(1),
+  })).optional(),
+});
+
+export const createTemplateSchema = z.object({
+  name: z.string().min(1, 'Template name is required').max(100),
+  description: z.string().max(500).optional(),
+  content: templateContentSchema,
+});
+
+export const updateTemplateSchema = z.object({
+  templateId: z.string().cuid(),
+  name: z.string().min(1, 'Template name is required').max(100).optional(),
+  description: z.string().max(500).optional(),
+  content: templateContentSchema.optional(),
+  isActive: z.boolean().optional(),
+});
+
+// ============================================================================
 // TYPE EXPORTS
 // ============================================================================
 
+export type TemplateContent = z.infer<typeof templateContentSchema>;
+export type CreateTemplateInput = z.infer<typeof createTemplateSchema>;
+export type UpdateTemplateInput = z.infer<typeof updateTemplateSchema>;
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
 export type CreateFamilyInput = z.infer<typeof createFamilySchema>;

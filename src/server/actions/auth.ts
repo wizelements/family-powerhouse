@@ -81,6 +81,24 @@ export async function signOutAction(): Promise<void> {
   redirect('/');
 }
 
+function isPrismaConnectionError(error: unknown): boolean {
+  if (error && typeof error === 'object') {
+    const errorObj = error as { code?: string; message?: string; name?: string };
+    if (errorObj.code === 'P1001' || errorObj.code === 'P1002' || errorObj.code === 'P1003' || errorObj.code === 'P1008' || errorObj.code === 'P1017') {
+      return true;
+    }
+    if (errorObj.name === 'PrismaClientInitializationError' || errorObj.name === 'PrismaClientKnownRequestError') {
+      const msg = errorObj.message?.toLowerCase() || '';
+      if (msg.includes('connect') || msg.includes('connection') || msg.includes('database') || msg.includes('timed out')) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+const GUEST_DB_ERROR_MESSAGE = 'Guest access is temporarily unavailable. Please try again later or create an account.';
+
 export async function createGuestAccountAction(): Promise<ActionResult<{ guestToken: string; userId: string }>> {
   try {
     // Find or create demo family
@@ -138,10 +156,12 @@ export async function createGuestAccountAction(): Promise<ActionResult<{ guestTo
       data: { guestToken, userId: createdUser.id },
     };
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to create guest account',
-    };
+    if (isPrismaConnectionError(error)) {
+      console.error('[createGuestAccountAction] Database connection error:', error);
+      return { success: false, error: GUEST_DB_ERROR_MESSAGE };
+    }
+    console.error('[createGuestAccountAction] Unexpected error:', error);
+    return { success: false, error: 'Failed to create guest account. Please try again.' };
   }
 }
 
@@ -188,10 +208,12 @@ export async function signInGuestAction(guestToken: string): Promise<ActionResul
 
     redirect('/dashboard');
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to sign in as guest',
-    };
+    if (isPrismaConnectionError(error)) {
+      console.error('[signInGuestAction] Database connection error:', error);
+      return { success: false, error: GUEST_DB_ERROR_MESSAGE };
+    }
+    console.error('[signInGuestAction] Unexpected error:', error);
+    return { success: false, error: 'Failed to sign in as guest. Please try again.' };
   }
 }
 

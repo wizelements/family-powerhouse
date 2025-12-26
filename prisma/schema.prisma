@@ -98,16 +98,18 @@ model Family {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  memberships    Membership[]
-  channels       Channel[]
-  pools          Pool[]
-  budgets        Budget[]
-  trips          Trip[]
-  ventures       Venture[]
-  invites        Invite[]
-  charterVersions FamilyCharterVersion[]
-  auditLogs      AuditLog[]
-  notifications  Notification[]
+  memberships          Membership[]
+  channels             Channel[]
+  pools                Pool[]
+  budgets              Budget[]
+  trips                Trip[]
+  ventures             Venture[]
+  invites              Invite[]
+  charterVersions      FamilyCharterVersion[]
+  auditLogs            AuditLog[]
+  notifications        Notification[]
+  templates            FamilyTemplate[]
+  templateSubscription TemplateSubscription?
 }
 
 model Membership {
@@ -1002,4 +1004,57 @@ enum AuditEvent {
   // Venture
   VENTURE_CREATED
   VENTURE_UPDATED
+
+  // Template
+  TEMPLATE_CREATED
+  TEMPLATE_UPDATED
+  TEMPLATE_DELETED
+}
+
+// ============================================================================
+// FAMILY TEMPLATES
+// ============================================================================
+
+model FamilyTemplate {
+  id          String   @id @default(cuid()) @map("_id")
+  familyId    String
+  createdById String
+  name        String
+  description String?
+  content     Json     // Stores template structure: channels, pools, budget categories, etc.
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, name])
+}
+
+model TemplateSubscription {
+  id                 String                     @id @default(cuid()) @map("_id")
+  familyId           String                     @unique
+  plan               TemplateSubscriptionPlan   @default(FREE)
+  maxTemplates       Int                        @default(7)
+  stripeSubscriptionId String?
+  stripeCustomerId   String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  status             TemplateSubscriptionStatus @default(ACTIVE)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+}
+
+enum TemplateSubscriptionPlan {
+  FREE
+  UNLIMITED
+}
+
+enum TemplateSubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
 }

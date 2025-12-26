@@ -30,11 +30,16 @@ export default function GuestAccessButton() {
       }
 
       router.push('/dashboard');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } catch {
+      setError('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    handleGuestAccess();
   };
 
   return (
@@ -44,16 +49,33 @@ export default function GuestAccessButton() {
         variant="secondary"
         onClick={handleGuestAccess}
         disabled={isLoading}
-        className="w-full sm:w-auto"
+        className="w-full sm:w-auto bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600"
       >
-        {isLoading ? 'Loading...' : 'Continue as Guest'}
+        {isLoading ? (
+          <span className="flex items-center gap-2">
+            <span className="animate-spin">⏳</span> Creating your demo...
+          </span>
+        ) : (
+          <span className="flex items-center gap-2">
+            🚀 Try Demo Free
+          </span>
+        )}
       </Button>
       <span className="text-muted-foreground text-xs mt-1">
-        Limited read-only access
+        Full access for 48 hours • No signup required
       </span>
       {error && (
-        <div className="text-red-600 text-sm mt-2">
-          {error}
+        <div className="flex flex-col items-center mt-2">
+          <div className="text-red-600 text-sm">{error}</div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRetry}
+            disabled={isLoading}
+            className="text-xs mt-1 underline"
+          >
+            Try again
+          </Button>
         </div>
       )}
     </div>

@@ -5,9 +5,13 @@ const publicPaths = [
   '/',
   '/login',
   '/signup',
+  '/upgrade',
+  '/terms',
+  '/privacy',
   '/api/auth',
   '/api/webhooks',
   '/api/health',
+  '/api/cron',
   '/invite',
 ];
 
@@ -21,10 +25,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check if auth is configured
-  if (!process.env.AUTH_SECRET) {
+  // Check if auth is configured (NextAuth uses NEXTAUTH_SECRET or AUTH_SECRET)
+  if (!process.env.NEXTAUTH_SECRET && !process.env.AUTH_SECRET) {
     // In development without auth, just allow everything
-    console.warn('AUTH_SECRET not configured');
+    console.warn('NEXTAUTH_SECRET not configured');
     return NextResponse.next();
   }
 
@@ -58,6 +62,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api/health|api/webhooks|.*\\..*).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/health|api/webhooks|api/cron|.*\\..*).*)',
   ],
 };
