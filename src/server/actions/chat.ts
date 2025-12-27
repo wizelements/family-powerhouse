@@ -8,6 +8,7 @@ import { triggerChannelEvent } from '@/lib/pusher/server';
 import { revalidatePath } from 'next/cache';
 import type { ActionResult } from '@/types';
 import type { Channel, Message } from '@prisma/client';
+import { sendMentionEmail } from '@/lib/email';
 
 export async function createChannelAction(formData: FormData): Promise<ActionResult<{ channelId: string }>> {
   const session = await auth();
@@ -136,6 +137,22 @@ export async function sendMessageAction(formData: FormData): Promise<ActionResul
             data: { messageId: newMessage.id, channelId: channel.id },
           })),
         });
+
+        // Send email notifications for mentions
+        const mentionedUsersWithEmail = await tx.user.findMany({
+          where: { id: { in: mentionedUsers.map(u => u.id) } },
+          select: { id: true, email: true },
+        });
+
+        for (const user of mentionedUsersWithEmail) {
+          sendMentionEmail(
+            user.email,
+            channel.id,
+            channel.name,
+            session.user.name || 'A family member',
+            result.data.content.slice(0, 100)
+          ).catch(err => console.error('[sendMessageAction] Email error:', err));
+        }
       }
     }
 
@@ -314,4 +331,169 @@ export async function getChannelMessages(
   }
 
   return { messages: messages.reverse(), nextCursor };
+}
+
+// ============================================================================
+// CHAT SEARCH
+// ============================================================================
+
+export interface SearchResult {
+  id: string;
+  content: string;
+  channelId: string;
+  channelName: string;
+  senderId: string;
+  senderName: string | null;
+  senderImage: string | null;
+  createdAt: Date;
+  highlight: string;
+}
+
+export async function searchMessages(
+  query: string,
+  options?: {
+    channelId?: string;
+    senderId?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }
+): Promise<SearchResult[]> {
+  const session = await auth();
+  if (!session?.user?.familyId || !query.trim()) return [];
+
+  const { channelId, senderId, startDate, endDate, limit = 50 } = options || {};
+
+  // Get all family channels first
+  const familyChannels = await prisma.channel.findMany({
+    where: { familyId: session.user.familyId },
+    select: { id: true, name: true },
+  });
+
+  const channelIds = channelId 
+    ? [channelId] 
+    : familyChannels.map(c => c.id);
+
+  const channelNameMap = Object.fromEntries(
+    familyChannels.map(c => [c.id, c.name])
+  );
+
+  // Build search query
+  const messages = await prisma.message.findMany({
+    where: {
+      channelId: { in: channelIds },
+      isDeleted: false,
+      content: {
+        contains: query,
+        mode: 'insensitive',
+      },
+      ...(senderId && { senderId }),
+      ...(startDate && { createdAt: { gte: startDate } }),
+      ...(endDate && { createdAt: { lte: endDate } }),
+    },
+    include: {
+      sender: { select: { id: true, name: true, image: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+
+  return messages.map(msg => {
+    // Create highlight with context
+    const lowerContent = msg.content.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    const matchIndex = lowerContent.indexOf(lowerQuery);
+    
+    let highlight = msg.content;
+    if (matchIndex !== -1) {
+      const start = Math.max(0, matchIndex - 30);
+      const end = Math.min(msg.content.length, matchIndex + query.length + 30);
+      highlight = (start > 0 ? '...' : '') +
+        msg.content.slice(start, end) +
+        (end < msg.content.length ? '...' : '');
+    }
+
+    return {
+      id: msg.id,
+      content: msg.content,
+      channelId: msg.channelId,
+      channelName: channelNameMap[msg.channelId] || 'Unknown',
+      senderId: msg.senderId,
+      senderName: msg.sender.name,
+      senderImage: msg.sender.image,
+      createdAt: msg.createdAt,
+      highlight,
+    };
+  });
+}
+
+export async function searchMessagesInChannel(
+  channelId: string,
+  query: string,
+  limit: number = 20
+): Promise<SearchResult[]> {
+  return searchMessages(query, { channelId, limit });
+}
+
+export async function getRecentMentions(limit: number = 20) {
+  const session = await auth();
+  if (!session?.user?.id || !session.user.familyId) return [];
+
+  const mentions = await prisma.mention.findMany({
+    where: { userId: session.user.id },
+    include: {
+      message: {
+        include: {
+          channel: { select: { id: true, name: true } },
+          sender: { select: { id: true, name: true, image: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+
+  return mentions.map(m => ({
+    id: m.message.id,
+    content: m.message.content,
+    channelId: m.message.channelId,
+    channelName: m.message.channel.name,
+    senderId: m.message.senderId,
+    senderName: m.message.sender.name,
+    senderImage: m.message.sender.image,
+    createdAt: m.message.createdAt,
+    mentionedAt: m.createdAt,
+  }));
+}
+
+export async function getMessageThread(messageId: string) {
+  const session = await auth();
+  if (!session?.user?.familyId) return null;
+
+  const message = await prisma.message.findFirst({
+    where: { id: messageId },
+    include: {
+      channel: true,
+      sender: { select: { id: true, name: true, image: true } },
+      replies: {
+        include: {
+          sender: { select: { id: true, name: true, image: true } },
+          reactions: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      },
+      parent: {
+        include: {
+          sender: { select: { id: true, name: true, image: true } },
+        },
+      },
+      reactions: true,
+    },
+  });
+
+  if (!message || message.channel.familyId !== session.user.familyId) {
+    return null;
+  }
+
+  return message;
 }

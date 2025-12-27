@@ -8,7 +8,8 @@ export async function GET() {
   try {
     await prisma.user.findFirst({ take: 1 });
     checks.database = { status: 'ok' };
-  } catch {
+  } catch (error) {
+    console.error('[HealthCheck] Database connection failed:', error instanceof Error ? error.message : 'Unknown error');
     checks.database = { status: 'error', message: 'Database connection failed' };
   }
 

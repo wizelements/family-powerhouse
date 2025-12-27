@@ -7,6 +7,8 @@ import bcrypt from 'bcryptjs';
 import { redirect } from 'next/navigation';
 import type { ActionResult } from '@/types';
 import { randomBytes } from 'crypto';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { sendPasswordResetEmail } from '@/lib/email';
 
 // Demo family slug for guest access
 const DEMO_FAMILY_SLUG = 'demo-family';
@@ -63,13 +65,26 @@ export async function signInAction(formData: FormData): Promise<ActionResult<voi
     return { success: false, error: result.error.issues[0].message };
   }
 
+  const email = result.data.email;
+
+  // Rate limiting check
+  const rateLimitResult = await checkRateLimit('login', email);
+  if (!rateLimitResult.success) {
+    const resetMinutes = Math.ceil((rateLimitResult.reset - Date.now()) / 60000);
+    return { 
+      success: false, 
+      error: `Too many login attempts. Please try again in ${resetMinutes} minute${resetMinutes > 1 ? 's' : ''}.` 
+    };
+  }
+
   try {
     await signIn('credentials', {
-      email: result.data.email,
+      email,
       password: result.data.password,
       redirect: false,
     });
-  } catch {
+  } catch (error) {
+    console.error('[signInAction] Authentication failed:', error instanceof Error ? error.message : 'Unknown error');
     return { success: false, error: 'Invalid email or password' };
   }
 
@@ -274,5 +289,114 @@ export async function upgradeGuestAccountAction(
       success: false,
       error: error instanceof Error ? error.message : 'Failed to upgrade account',
     };
+  }
+}
+
+export async function requestPasswordResetAction(formData: FormData): Promise<ActionResult<void>> {
+  const email = formData.get('email');
+  
+  if (!email || typeof email !== 'string') {
+    return { success: false, error: 'Email is required' };
+  }
+
+  // Rate limiting
+  const rateLimitResult = await checkRateLimit('password-reset', email);
+  if (!rateLimitResult.success) {
+    return { 
+      success: false, 
+      error: 'Too many password reset requests. Please try again later.' 
+    };
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    // Always return success to prevent email enumeration
+    if (!user || user.isGuest) {
+      console.log('[requestPasswordResetAction] No user found or is guest for:', email);
+      return { success: true, data: undefined };
+    }
+
+    // Generate reset token
+    const resetToken = randomBytes(32).toString('hex');
+    const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    // Store token in database
+    await prisma.verificationToken.create({
+      data: {
+        identifier: email,
+        token: resetToken,
+        expires: resetExpires,
+      },
+    });
+
+    // Send password reset email
+    const emailResult = await sendPasswordResetEmail(email, resetToken);
+    if (!emailResult.success) {
+      console.error('[requestPasswordResetAction] Failed to send email:', emailResult.error);
+      // Don't expose email failure to user
+    }
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error('[requestPasswordResetAction] Error:', error);
+    return { success: false, error: 'Failed to process password reset request. Please try again.' };
+  }
+}
+
+export async function resetPasswordAction(
+  token: string,
+  newPassword: string
+): Promise<ActionResult<void>> {
+  if (!token || !newPassword) {
+    return { success: false, error: 'Token and new password are required' };
+  }
+
+  if (newPassword.length < 8) {
+    return { success: false, error: 'Password must be at least 8 characters' };
+  }
+
+  try {
+    // Find and validate token
+    const verificationToken = await prisma.verificationToken.findUnique({
+      where: { token },
+    });
+
+    if (!verificationToken) {
+      return { success: false, error: 'Invalid or expired reset link' };
+    }
+
+    if (verificationToken.expires < new Date()) {
+      // Clean up expired token
+      await prisma.verificationToken.delete({ where: { token } });
+      return { success: false, error: 'Reset link has expired. Please request a new one.' };
+    }
+
+    // Find user
+    const user = await prisma.user.findUnique({
+      where: { email: verificationToken.identifier },
+    });
+
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
+
+    // Update password
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash },
+      }),
+      prisma.verificationToken.delete({ where: { token } }),
+    ]);
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error('[resetPasswordAction] Error:', error);
+    return { success: false, error: 'Failed to reset password. Please try again.' };
   }
 }

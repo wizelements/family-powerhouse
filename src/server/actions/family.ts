@@ -9,6 +9,7 @@ import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 import type { ActionResult } from '@/types';
 import type { Role, Family, Membership } from '@prisma/client';
+import { sendInviteEmail } from '@/lib/email';
 
 function generateSlug(name: string): string {
   return name
@@ -138,7 +139,17 @@ export async function inviteMemberAction(formData: FormData): Promise<ActionResu
     metadata: { email, role },
   });
 
-  // TODO: Send email invitation
+  // Get family name for email
+  const family = await prisma.family.findUnique({
+    where: { id: session.user.familyId },
+    select: { name: true },
+  });
+
+  // Send email invitation
+  const emailResult = await sendInviteEmail(email, family?.name || 'Your Family', role, token);
+  if (!emailResult.success) {
+    console.error('[inviteMemberAction] Failed to send invite email:', emailResult.error);
+  }
   
   revalidatePath('/dashboard/members');
   return { success: true, data: { inviteToken: token } };
