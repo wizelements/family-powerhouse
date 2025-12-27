@@ -2,18 +2,21 @@
 
 [![CI](https://github.com/wizelements/family-powerhouse/actions/workflows/ci.yml/badge.svg)](https://github.com/wizelements/family-powerhouse/actions/workflows/ci.yml)
 [![Deploy Checks](https://github.com/wizelements/family-powerhouse/actions/workflows/deploy-checks.yml/badge.svg)](https://github.com/wizelements/family-powerhouse/actions/workflows/deploy-checks.yml)
+[![CodeQL](https://github.com/wizelements/family-powerhouse/actions/workflows/codeql.yml/badge.svg)](https://github.com/wizelements/family-powerhouse/actions/workflows/codeql.yml)
 
-A production-grade, multi-tenant web application for families to stay connected, pool money for shared goals, track budgets, plan trips, and build entrepreneurial wealth systems together.
+Production-grade, multi-tenant web application for families to stay connected, pool money for shared goals, track budgets, plan trips, and build entrepreneurial wealth systems together.
+
+---
 
 ## Features
 
-- 🏠 **Family Accounts** - Multi-tenant with roles (Owner, Treasurer, Planner, Member, Youth, Guest)
-- 💬 **Live Chat** - Real-time messaging with channels, mentions, reactions
-- 💰 **Money Pooling** - Create pools for trips, emergencies, ventures with approval workflows
-- 📊 **Budget Tracking** - Household and personal budgets with categories and alerts
-- ✈️ **Trip Planning** - Collaborative itineraries, voting, pool integration
-- 🚀 **Ventures** - Track family business ventures with milestones and financials
-- 🎯 **Accountability** - Habit tracking and family scoreboards
+- **Family Accounts** - Multi-tenant with roles (Owner, Treasurer, Planner, Member, Youth, Guest)
+- **Live Chat** - Real-time messaging with channels, mentions, reactions
+- **Money Pooling** - Create pools for trips, emergencies, ventures with approval workflows
+- **Budget Tracking** - Household and personal budgets with categories and alerts
+- **Trip Planning** - Collaborative itineraries, voting, pool integration
+- **Ventures** - Track family business ventures with milestones and financials
+- **Accountability** - Habit tracking and family scoreboards
 
 ## Tech Stack
 
@@ -141,8 +144,10 @@ See [docs/RUNBOOK.md](docs/RUNBOOK.md) for detailed deployment instructions.
 
 ## License
 
-MIT
+[MIT](LICENSE)
 
 ---
+
+Built by [Cod3BlackAgency](https://github.com/wizelements)
 
 **Disclaimer:** This is a budgeting and planning tool. We do not provide financial, investment, or legal advice.
