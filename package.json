@@ -44,7 +44,7 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
-    "@aws-sdk/s3-request-presigner": "^3.958.0",
+    "@aws-sdk/s3-request-presigner": "^3.966.0",
     "@next/bundle-analyzer": "^16.1.1",
     "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
@@ -59,12 +59,12 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "eslint-plugin-security": "^3.0.1",
-    "jsdom": "^27.3.0",
+    "jsdom": "^27.4.0",
     "playwright": "^1.57.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
-    "vite-tsconfig-paths": "^6.0.3",
-    "vitest": "^4.0.16"
+    "vite-tsconfig-paths": "^6.0.4",
+    "vitest": "^4.0.17"
   }
 }
