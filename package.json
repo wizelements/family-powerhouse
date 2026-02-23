@@ -44,27 +44,27 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
-    "@aws-sdk/s3-request-presigner": "^3.958.0",
-    "@next/bundle-analyzer": "^16.1.1",
-    "@playwright/test": "^1.57.0",
+    "@aws-sdk/s3-request-presigner": "^3.995.0",
+    "@next/bundle-analyzer": "^16.1.6",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.1",
+    "@testing-library/react": "^16.3.2",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^11.0.0",
-    "@vitejs/plugin-react": "^5.1.2",
+    "@vitejs/plugin-react": "^5.1.4",
     "eslint": "^9",
-    "eslint-config-next": "16.1.1",
+    "eslint-config-next": "16.1.6",
     "eslint-plugin-security": "^3.0.1",
-    "jsdom": "^27.3.0",
-    "playwright": "^1.57.0",
+    "jsdom": "^27.4.0",
+    "playwright": "^1.58.2",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
-    "vite-tsconfig-paths": "^6.0.3",
-    "vitest": "^4.0.16"
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.0.18"
   }
 }
